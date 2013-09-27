@@ -1,6 +1,6 @@
 /.metadata
 /sbt
 /eclipse
-/target
-bin
 *.jar
+bin
+target
