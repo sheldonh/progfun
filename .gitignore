@@ -1,6 +1,7 @@
 /.metadata
 /sbt
 /eclipse
+.cache
 .worksheet
 *.jar
 bin
