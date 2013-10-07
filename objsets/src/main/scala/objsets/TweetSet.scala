@@ -72,7 +72,6 @@ abstract class TweetSet {
    * and be implemented in the subclasses?
    */
   def mostRetweeted: Tweet
-  def leastRetweeted: Tweet
 
   /**
    * Returns a list containing all tweets of this set, sorted by retweet count
@@ -125,7 +124,6 @@ class Empty extends TweetSet {
   def union(that: TweetSet): TweetSet = that
 
   def mostRetweeted: Tweet = throw new java.util.NoSuchElementException()
-  def leastRetweeted: Tweet = throw new java.util.NoSuchElementException()
 
   def descendingByRetweet: TweetList = Nil
 
@@ -175,29 +173,12 @@ class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
     }
   }
 
-  def leastRetweeted: Tweet = {
-    if (left.isEmpty && right.isEmpty) elem
-    else if (left.isEmpty) {
-      val that = right.leastRetweeted
-      if (elem.retweets < that.retweets) elem else that
-    } else if (right.isEmpty) {
-      val that = left.leastRetweeted
-      if (elem.retweets < that.retweets) elem else that
-    } else {
-      val lmr = left.leastRetweeted
-      val rmr = right.leastRetweeted
-      if (lmr.retweets < elem.retweets && lmr.retweets < rmr.retweets) lmr
-      else if (rmr.retweets < elem.retweets && rmr.retweets < lmr.retweets) rmr
-      else elem
-    }
-  }
-
   def descendingByRetweet: TweetList = {
     def step(s: TweetSet, l: TweetList): TweetList =
       if (s.isEmpty) l
       else {
-        val mr = s.leastRetweeted
-        step(s.remove(mr), new Cons(mr, l))
+        val mr = s.mostRetweeted
+        new Cons(mr, step(s.remove(mr), l))
       }
     step(this, Nil)
   }
