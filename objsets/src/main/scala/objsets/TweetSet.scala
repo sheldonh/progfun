@@ -35,14 +35,19 @@ class Tweet(val user: String, val text: String, val retweets: Int) {
  */
 abstract class TweetSet {
 
+  def isEmpty: Boolean
+  
   /**
    * This method takes a predicate and returns a subset of all the elements
    * in the original set for which the predicate is true.
    *
    * Question: Can we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
+   * 
+   * Answer: We don't have access to elem from the constructor, so it must
+   * remain abstract here.
    */
-  def filter(p: Tweet => Boolean): TweetSet = ???
+  def filter(p: Tweet => Boolean): TweetSet
 
   /**
    * This is a helper method for `filter` that propagetes the accumulated tweets.
@@ -55,7 +60,7 @@ abstract class TweetSet {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-   def union(that: TweetSet): TweetSet = ???
+   def union(that: TweetSet): TweetSet
 
   /**
    * Returns the tweet from this set which has the greatest retweet count.
@@ -66,7 +71,8 @@ abstract class TweetSet {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def mostRetweeted: Tweet = ???
+  def mostRetweeted: Tweet
+  def leastRetweeted: Tweet
 
   /**
    * Returns a list containing all tweets of this set, sorted by retweet count
@@ -77,7 +83,7 @@ abstract class TweetSet {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def descendingByRetweet: TweetList = ???
+  def descendingByRetweet: TweetList
 
 
   /**
@@ -110,8 +116,18 @@ abstract class TweetSet {
 
 class Empty extends TweetSet {
 
+  def isEmpty: Boolean = true
+  
+  def filter(p: Tweet => Boolean): TweetSet = this
+  
   def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = ???
 
+  def union(that: TweetSet): TweetSet = that
+
+  def mostRetweeted: Tweet = throw new java.util.NoSuchElementException()
+  def leastRetweeted: Tweet = throw new java.util.NoSuchElementException()
+
+  def descendingByRetweet: TweetList = Nil
 
   /**
    * The following methods are already implemented
@@ -128,9 +144,64 @@ class Empty extends TweetSet {
 
 class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
 
+  def isEmpty: Boolean = false
+  
+  def union(that: TweetSet): TweetSet =
+    new NonEmpty(elem, left.union(that.filter(x => x.text < elem.text)), right.union(that.filter(x => elem.text < x.text)))
+  
+  // I added this because I made TweetSet.filter abstract. 
+  def filter(p: Tweet => Boolean): TweetSet =
+    if (p(elem)) new NonEmpty(elem, left.filter(p), right.filter(p))
+    else this.remove(elem).filter(p)
+
   def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = ???
+    //if (p(elem)) new NonEmpty(elem, left.filter(p), right.filter(p))
+    //else left.filter(p).union(right.filter(p))
 
+  def mostRetweeted: Tweet = {
+    if (left.isEmpty && right.isEmpty) elem
+    else if (left.isEmpty) {
+      val that = right.mostRetweeted
+      if (elem.retweets > that.retweets) elem else that
+    } else if (right.isEmpty) {
+      val that = left.mostRetweeted
+      if (elem.retweets > that.retweets) elem else that
+    } else {
+      val lmr = left.mostRetweeted
+      val rmr = right.mostRetweeted
+      if (lmr.retweets > elem.retweets && lmr.retweets > rmr.retweets) lmr
+      else if (rmr.retweets > elem.retweets && rmr.retweets > lmr.retweets) rmr
+      else elem
+    }
+  }
 
+  def leastRetweeted: Tweet = {
+    if (left.isEmpty && right.isEmpty) elem
+    else if (left.isEmpty) {
+      val that = right.leastRetweeted
+      if (elem.retweets < that.retweets) elem else that
+    } else if (right.isEmpty) {
+      val that = left.leastRetweeted
+      if (elem.retweets < that.retweets) elem else that
+    } else {
+      val lmr = left.leastRetweeted
+      val rmr = right.leastRetweeted
+      if (lmr.retweets < elem.retweets && lmr.retweets < rmr.retweets) lmr
+      else if (rmr.retweets < elem.retweets && rmr.retweets < lmr.retweets) rmr
+      else elem
+    }
+  }
+
+  def descendingByRetweet: TweetList = {
+    def step(s: TweetSet, l: TweetList): TweetList =
+      if (s.isEmpty) l
+      else {
+        val mr = s.leastRetweeted
+        step(s.remove(mr), new Cons(mr, l))
+      }
+    step(this, Nil)
+  }
+    
   /**
    * The following methods are already implemented
    */
