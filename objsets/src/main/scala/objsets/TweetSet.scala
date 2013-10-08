@@ -119,7 +119,7 @@ class Empty extends TweetSet {
   
   def filter(p: Tweet => Boolean): TweetSet = this
   
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = ???
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = acc
 
   def union(that: TweetSet): TweetSet = that
 
@@ -147,14 +147,12 @@ class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
   def union(that: TweetSet): TweetSet =
     new NonEmpty(elem, left.union(that.filter(x => x.text < elem.text)), right.union(that.filter(x => elem.text < x.text)))
   
-  // I added this because I made TweetSet.filter abstract. 
-  def filter(p: Tweet => Boolean): TweetSet =
-    if (p(elem)) new NonEmpty(elem, left.filter(p), right.filter(p))
-    else this.remove(elem).filter(p)
+  def filter(p: Tweet => Boolean): TweetSet = filterAcc(p, new Empty)
 
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = ???
-    //if (p(elem)) new NonEmpty(elem, left.filter(p), right.filter(p))
-    //else left.filter(p).union(right.filter(p))
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = {
+    val next = if (p(elem)) acc.incl(elem) else acc
+    left.filterAcc(p, right.filterAcc(p, next))
+  }
 
   def mostRetweeted: Tweet = {
     if (left.isEmpty && right.isEmpty) elem
@@ -236,14 +234,14 @@ object GoogleVsApple {
   val google = List("android", "Android", "galaxy", "Galaxy", "nexus", "Nexus")
   val apple = List("ios", "iOS", "iphone", "iPhone", "ipad", "iPad")
 
-  lazy val googleTweets: TweetSet = ???
-  lazy val appleTweets: TweetSet = ???
+  lazy val googleTweets: TweetSet = TweetReader.allTweets.filter(t => google.exists(w => t.text.contains(w)))
+  lazy val appleTweets: TweetSet = TweetReader.allTweets.filter(t => apple.exists(w => t.text.contains(w)))
 
   /**
    * A list of all tweets mentioning a keyword from either apple or google,
    * sorted by the number of retweets.
    */
-  lazy val trending: TweetList = ???
+  lazy val trending: TweetList = googleTweets.union(appleTweets).descendingByRetweet
 }
 
 object Main extends App {
