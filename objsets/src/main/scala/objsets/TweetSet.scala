@@ -72,6 +72,7 @@ abstract class TweetSet {
    * and be implemented in the subclasses?
    */
   def mostRetweeted: Tweet
+  def mostRetweetedAcc(x: Tweet): Tweet
 
   /**
    * Returns a list containing all tweets of this set, sorted by retweet count
@@ -125,6 +126,8 @@ class Empty extends TweetSet {
 
   def mostRetweeted: Tweet = throw new java.util.NoSuchElementException()
 
+  def mostRetweetedAcc(x: Tweet): Tweet = x
+
   def descendingByRetweet: TweetList = Nil
 
   /**
@@ -155,20 +158,12 @@ class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
   }
 
   def mostRetweeted: Tweet = {
-    if (left.isEmpty && right.isEmpty) elem
-    else if (left.isEmpty) {
-      val that = right.mostRetweeted
-      if (elem.retweets > that.retweets) elem else that
-    } else if (right.isEmpty) {
-      val that = left.mostRetweeted
-      if (elem.retweets > that.retweets) elem else that
-    } else {
-      val lmr = left.mostRetweeted
-      val rmr = right.mostRetweeted
-      if (lmr.retweets > elem.retweets && lmr.retweets > rmr.retweets) lmr
-      else if (rmr.retweets > elem.retweets && rmr.retweets > lmr.retweets) rmr
-      else elem
-    }
+    mostRetweetedAcc(elem)
+  }
+  
+  def mostRetweetedAcc(x: Tweet): Tweet = {
+    val next = if (elem.retweets > x.retweets) elem else x
+    left.mostRetweetedAcc(right.mostRetweetedAcc(next))
   }
 
   def descendingByRetweet: TweetList = {
